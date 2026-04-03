@@ -1,6 +1,7 @@
 from ble_serial.ports.interface import ISerial
 import asyncio
 import logging
+import struct
 
 
 class TCP_Socket(ISerial):
@@ -17,7 +18,8 @@ class TCP_Socket(ISerial):
     def queue_write(self, value: bytes):
         if self.connected:
             logging.debug(f'Sending: {value}')
-            self.writer.write(value)
+            data = b'>' + struct.pack('<h', len(value)) + value
+            self.writer.write(data)
         else:
             logging.debug('No client connected, dropping data...')
 
@@ -51,7 +53,11 @@ class TCP_Socket(ISerial):
 
                 if len(data) > 0:
                     logging.debug(f'Received {data}')
-                    self._cb(data)
+                    (l,) = struct.unpack('<h', data[1:3])
+                    if len(data) == 1 + l + 2:
+                        self._cb(data[3:])
+                    else:
+                         raise NotImplementedError
                 else:
                     logging.warning('Client disconnected (EOF)')
                     self.connected = False

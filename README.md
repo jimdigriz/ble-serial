@@ -5,6 +5,47 @@ It fulfills the same purpose as `rfcomm bind` for the old Bluetooth 2.0, creatin
 
 On Windows it provides a `COM` port, similar to the Microsoft "Standard Serial over Bluetooth" (a driver which exists since Windows XP and unsurprisingly also does not support BLE standards).
 
+## Meshcore Bluetooth<->TCP Proxy
+
+This tool can be used to access your Meshcore Bluetooth companion using TCP; labelled 'WIFI' in the mobile companion app.
+
+It does not require the companion to support a wireless network, and works with a stock Meshcore firmware (tested with version 1.14.1).
+
+It works by turning your computer into a proxy that translates between the [TCP wire format](https://github.com/meshcore-dev/MeshCore/blob/main/src/helpers/esp32/SerialWifiInterface.cpp) and Bluetooth; with the heavy lifting being done by the [upstream repository this project is based upon](https://github.com/Jakeler/ble-serial.git).
+
+My use case is:
+
+ * you want to retain message history on your mobile application
+ * you want to still be able to grab-and-go with your companion
+ * most of the time you leave your companion somewhere about your home; within Bluetooth range of your workstation
+
+In this situation, if I am near my companion, I can connect as usual using Bluetooth, but when away I also have the option to SSH into my workstation, use an SSH tunnel to access the local TCP port that connects me back to my companion.
+
+### Preflight
+
+As a first time run:
+
+    python3 -m venv .venv
+    ./.venv/bin/pip install -r requirements.txt
+
+Now make sure you are disconnected from your Bluetooth companion and run:
+
+    ./.venv/bin/python3 -m ble_serial.scan
+
+This will list the hardware (MAC) address of your device, then use it as the value for `dev` in the command below.
+
+## Connecting
+
+Run:
+
+    ./.venv/bin/python3 -m ble_serial --dev 11:22:33:44:55:66 --mtu 512 --expose-tcp-host 0.0.0.0 --expose-tcp-port 5000
+
+**N.B.** you may wish to change the value of `expose-tcp-host` to a RFC1918 address or better still use the default of `127.0.0.1` and access it over a SSH tunnel
+
+Now connect to the IP and port of your device in the mobile companion app.
+
+Happy remote meshing!
+
 ## Installation
 ### Standard (via [Python Package Index](https://pypi.org/project/ble-serial/))
 The software is written completely in Python and packaged as module, so it can be easily installed with pip:
